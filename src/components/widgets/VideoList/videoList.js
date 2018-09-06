@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
-import axios from 'axios';
+// import axios from 'axios';
 
 import styles from './videoList.css';
-import { URL } from '../../../config';
+// import { URL } from '../../../config';
 import Button from '../Buttons/buttons';
 import VideosTemplate from '../VideoList/videosList_template';
+import { fb_teams, firebaseLooper, fb_videos } from '../../../firebase';
 
 
 class VideoList extends Component {
@@ -44,21 +45,34 @@ class VideoList extends Component {
 
     request = (start,end) => {
         if(this.state.teams.length < 1) {
-            axios.get(`${URL}/teams`)
-                .then(response => {
+
+            fb_teams.once('value')
+                .then((snapshot) => {
+                    const teams = firebaseLooper(snapshot);
                     this.setState({
-                        teams: response.data
+                        teams
                     })
                 })
                 .catch(error => {
                     console.log(error);
                 })
+
+            // axios.get(`${URL}/teams`)
+            //     .then(response => {
+            //         this.setState({
+            //             teams: response.data
+            //         })
+            //     })
+            //     .catch(error => {
+            //         console.log(error);
+            //     })
         }
 
-        axios.get(`${URL}/videos?_start=${start}&_end=${end}`)
-            .then(response => {
+        fb_videos.orderByChild('id').startAt(start).endAt(end).once('value')
+            .then((snapshot) => {
+                const videos = firebaseLooper(snapshot);
                 this.setState({
-                    videos: [...this.state.videos, ...response.data],
+                    videos: [...this.state.videos, ...videos],
                     start: start,
                     end: end
                 })
@@ -66,6 +80,18 @@ class VideoList extends Component {
             .catch(error => {
                 console.log(error);
             })
+
+        // axios.get(`${URL}/videos?_start=${start}&_end=${end}`)
+        //     .then(response => {
+        //         this.setState({
+        //             videos: [...this.state.videos, ...response.data],
+        //             start: start,
+        //             end: end
+        //         })
+        //     })
+        //     .catch(error => {
+        //         console.log(error);
+        //     })
     }
 
     renderVideos = () => {
@@ -84,7 +110,7 @@ class VideoList extends Component {
 
     loadMore = () => {
         let end = this.state.end + this.state.amount;
-        this.request(this.state.end, end);
+        this.request(this.state.end+1, end);
     }
 
     render() {
